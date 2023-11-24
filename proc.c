@@ -88,6 +88,11 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = 2;
+  p->ctime = ticks;
+  p->retime = 0;
+  p->rutime = 0;
+  p->stime = 0;
 
   release(&ptable.lock);
 
@@ -332,23 +337,27 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
+    int found_proc = 0;
+    int prio = 2;
+
+    while(!found_proc){
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->state == RUNNABLE && p->priority == prio){
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
       c->proc = 0;
+          found_proc = 1;
+          break;
+        }  
+      }
+      if(prio == 0)
+        break;
+      prio--;
     }
     release(&ptable.lock);
 
@@ -532,3 +541,49 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int
+change_prio(int priority)
+{
+  if (priority < 1 || priority > 3)
+    return -1;
+
+  struct proc *curr_proc = myproc();
+
+  if(curr_proc->priority == priority)
+    return 0;
+  else
+    curr_proc->priority = priority;
+
+  return 0;
+}
+
+void 
+update_proc(void)
+{
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->priority == 1 && p->retime > T0TO1){
+      p->priority = 2;
+    } else if(p->priority == 2 && p->retime > T1TO2){
+      p->priority = 3;
+    }
+    switch(p->state)
+    {
+    case SLEEPING:
+      p->stime++;
+      break;
+    case RUNNING:
+      p->rutime++;
+      break;
+    case RUNNABLE:
+      p->retime++;
+      break;
+    default:
+      break;
+    }
+  }
+  release(&ptable.lock);
+}
+
