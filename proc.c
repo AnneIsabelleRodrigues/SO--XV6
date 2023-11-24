@@ -337,28 +337,61 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE)
+    //     continue;
 
-    int found_proc = 0;
-    int prio = 2;
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
+
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
+
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
+     int found_proc = 0;
+    int seek_prio = 2;
 
     while(!found_proc){
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if(p->state == RUNNABLE && p->priority == prio){
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->state == RUNNABLE && p->priority == seek_prio){
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-      c->proc = 0;
+          // Switch to chosen process.  It is the process's job
+          // to release ptable.lock and then reacquire it
+          // before jumping back to us.
+          c->proc = p;
+          switchuvm(p);
+          p->state = RUNNING;
+
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+
+          // Process to switch was found.
+          // Breaking the loop over process table.
+          // Restart search for higher priority process
           found_proc = 1;
           break;
         }  
       }
-      if(prio == 0)
+      // Did not find any runnable process.
+      if(seek_prio == 0)
         break;
-      prio--;
-    }
+
+      // Couldn't find higher priority runnable process.
+      // Find process with lower priority.
+      seek_prio--;
+
+    }  
     release(&ptable.lock);
 
   }
@@ -545,7 +578,7 @@ procdump(void)
 int
 change_prio(int priority)
 {
-  if (priority < 1 || priority > 3)
+  if (priority < 0 || priority > 2)
     return -1;
 
   struct proc *curr_proc = myproc();
@@ -558,16 +591,17 @@ change_prio(int priority)
   return 0;
 }
 
+// Update process stats and priority
 void 
 update_proc(void)
 {
   struct proc *p;
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->priority == 1 && p->retime > T0TO1){
+    if(p->priority == 0 && p->retime > T0TO1){
+      p->priority = 1;
+    } else if(p->priority == 1 && p->retime > T1TO2){
       p->priority = 2;
-    } else if(p->priority == 2 && p->retime > T1TO2){
-      p->priority = 3;
     }
     switch(p->state)
     {
@@ -587,7 +621,7 @@ update_proc(void)
   release(&ptable.lock);
 }
 
-int 
+nt 
 wait2(int *retime, int *rutime, int *stime)
 {
   struct proc *p;
@@ -624,11 +658,13 @@ wait2(int *retime, int *rutime, int *stime)
       }
     }
 
+    // No point waiting if we don't have any children.
     if(!havekids || myproc()->killed){
       release(&ptable.lock);
       return -1;
     }
 
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(myproc(), &ptable.lock);  //DOC: wait-sleep
   }
 }

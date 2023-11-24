@@ -95,9 +95,16 @@ sys_change_prio(void)
 {
   int priority;
 
-  if (argint(0, &priority) < 1 || argint(0, &priority) > 3)
+  if (argint(0, &priority) < 0 || argint(0, &priority) > 2)
     return -1;
   return change_prio(priority);
+}
+
+int 
+sys_yield(void)
+{
+  yield();
+  return 0;
 }
 
 int
@@ -112,11 +119,4 @@ sys_wait2(void)
   if (argptr(2, (void*)&stime, sizeof(stime)) < 0)
     return -1;
   return wait2(retime, rutime, stime);
-}
-
-int 
-sys_yield(void)
-{
-  yield();
-  return 0;
 }
