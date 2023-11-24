@@ -103,7 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
-extern int sys_change_prio(int);
+extern int sys_change_prio(void);
 extern int sys_yield(void);
 extern int sys_wait2(void);
 

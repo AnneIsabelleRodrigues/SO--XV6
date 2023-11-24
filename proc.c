@@ -598,10 +598,10 @@ update_proc(void)
   struct proc *p;
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->priority == 0 && p->retime > T0TO1){
-      p->priority = 1;
-    } else if(p->priority == 1 && p->retime > T1TO2){
+    if(p->priority == 1 && p->retime > P1TO2){
       p->priority = 2;
+    } else if(p->priority == 2 && p->retime > P2TO3){
+      p->priority = 3;
     }
     switch(p->state)
     {
@@ -621,7 +621,7 @@ update_proc(void)
   release(&ptable.lock);
 }
 
-nt 
+int 
 wait2(int *retime, int *rutime, int *stime)
 {
   struct proc *p;

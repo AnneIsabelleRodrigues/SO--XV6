@@ -79,15 +79,15 @@ int main(int argc, char *argv[]) {
                 process_type = (getpid() - 4) % 3;
                 switch (process_type) {
                 case 0:
-                    set_prio(2);
+                    change_prio(2);
                     cpu_bound();
                     break;
                 case 1:
-                    set_prio(1);
+                    change_prio(1);
                     short_cpu();
                     break;
                 case 2:
-                    set_prio(0);
+                    change_prio(0);
                     io_bound();
                     break;
                 }
