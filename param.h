@@ -12,5 +12,5 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       1000  // size of file system in blocks
 #define INTERV       5   // INTERVALO DE PREENMPÇÃO - escalonador
-#define P1TO2        200 // 1TO2
-#define P2TO3        100 // 2TO3
+#define P1TO2        100 // 1TO2
+#define P2TO3        20 // 2TO3

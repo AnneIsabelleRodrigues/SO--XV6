@@ -10,12 +10,10 @@ void cpu_bound() {
 }
 
 void short_cpu() {
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 20; i++) {
         for (int j = 0; j < 1000000; j++) {
-            if ((j+1) % 10000 == 0)
-                yield();
-            asm("nop");
         }
+        yield();
     }
 }
 
